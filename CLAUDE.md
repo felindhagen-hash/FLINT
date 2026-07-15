@@ -10,7 +10,7 @@ lock below, stop and flag it instead of resolving it silently.
 ## Hard guardrails
 - Single self-contained HTML file (`index.html` = the sim). No build step,
   no framework, no npm, no external requests. Must run from file:// and
-  GitHub Pages, on phone-width screens.
+  GitHub Pages, on phone-width screens. https://felindhagen-hash.github.io/FLINT/
 - **No Godot project in this repo, ever.** The game build is a separate,
   ungated-later decision.
 - All game data lives in the one `DEFAULT_DATA` block; engine logic reads
@@ -86,4 +86,4 @@ after sim changes. Test in clean order — imports mutate global data.
 - Commit per feature, message says what changed in the *economy or UI*,
   not just the code. The git log is the balance changelog.
 - Keep GitHub Pages deployment current — the live URL is the phone playtest
-  surface and the design chat fetches it.
+  surface and the design chat fetches it. https://felindhagen-hash.github.io/FLINT/
