@@ -1,4 +1,4 @@
 # FLINT
-Resource management game 
-// Link to live Pages URL
+Resource management game </br>
+// Link to live Pages URL </br>
 Design doc lives elsewhere (Notion). 
