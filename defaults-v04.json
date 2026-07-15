@@ -1,0 +1,318 @@
+{
+  "data": {
+    "meta": {
+      "name": "Holding economy",
+      "version": "0.4",
+      "exported": "2026-07-15 baseline (extracted verbatim from v0.4 DEFAULT_DATA)"
+    },
+    "resources": [
+      {
+        "id": "food",
+        "name": "prepared food",
+        "start": 6
+      },
+      {
+        "id": "raw",
+        "name": "raw food",
+        "start": 0
+      },
+      {
+        "id": "fw",
+        "name": "firewood",
+        "start": 6
+      },
+      {
+        "id": "wood",
+        "name": "wood",
+        "start": 0
+      },
+      {
+        "id": "stone",
+        "name": "stone",
+        "start": 0
+      },
+      {
+        "id": "bone",
+        "name": "bone",
+        "start": 0
+      },
+      {
+        "id": "arw",
+        "name": "wooden arrows",
+        "start": 0
+      },
+      {
+        "id": "arb",
+        "name": "bone arrows",
+        "start": 0
+      },
+      {
+        "id": "arf",
+        "name": "flint arrows",
+        "start": 0
+      }
+    ],
+    "tools": [
+      {
+        "id": "axe",
+        "name": "stone axe",
+        "life": 24,
+        "start": 0
+      },
+      {
+        "id": "bow",
+        "name": "bow",
+        "life": 60,
+        "start": 0
+      },
+      {
+        "id": "pick",
+        "name": "bone pick",
+        "life": 24,
+        "start": 0
+      }
+    ],
+    "activities": [
+      {
+        "id": "berries",
+        "name": "Gather berries",
+        "tool": "",
+        "inp": "",
+        "out": "food:1",
+        "wear": 0
+      },
+      {
+        "id": "fwscav",
+        "name": "Scavenge firewood",
+        "tool": "",
+        "inp": "",
+        "out": "fw:1",
+        "wear": 0
+      },
+      {
+        "id": "stoneB",
+        "name": "Stone (bare hands)",
+        "tool": "",
+        "inp": "",
+        "out": "stone:0.25",
+        "wear": 0
+      },
+      {
+        "id": "stoneP",
+        "name": "Stone (bone pick)",
+        "tool": "pick",
+        "inp": "",
+        "out": "stone:0.5",
+        "wear": 1
+      },
+      {
+        "id": "woodcut",
+        "name": "Cut wood",
+        "tool": "axe",
+        "inp": "",
+        "out": "wood:1",
+        "wear": 1
+      },
+      {
+        "id": "huntW",
+        "name": "Hunt (wooden arrows)",
+        "tool": "bow",
+        "inp": "arw:1",
+        "out": "raw:2",
+        "wear": 1
+      },
+      {
+        "id": "huntB",
+        "name": "Hunt (bone arrows)",
+        "tool": "bow",
+        "inp": "arb:1",
+        "out": "raw:3",
+        "wear": 1
+      },
+      {
+        "id": "huntF",
+        "name": "Hunt (flint arrows)",
+        "tool": "bow",
+        "inp": "arf:1",
+        "out": "raw:4",
+        "wear": 1
+      },
+      {
+        "id": "cook",
+        "name": "Cook",
+        "tool": "",
+        "inp": "raw:1, fw:4",
+        "out": "food:4, bone:0.25",
+        "wear": 0
+      },
+      {
+        "id": "chop",
+        "name": "Chopping block",
+        "tool": "axe",
+        "inp": "wood:4",
+        "out": "fw:8",
+        "wear": 1
+      }
+    ],
+    "sites": [
+      {
+        "id": "glade",
+        "name": "South glade",
+        "acts": "berries",
+        "dist": 0.5,
+        "stock": 60,
+        "cap": 60,
+        "regrow": 10
+      },
+      {
+        "id": "heath",
+        "name": "Heather slopes",
+        "acts": "berries",
+        "dist": 1.2,
+        "stock": 90,
+        "cap": 90,
+        "regrow": 12
+      },
+      {
+        "id": "copse",
+        "name": "The copse",
+        "acts": "fwscav",
+        "dist": 0.25,
+        "stock": 50,
+        "cap": 50,
+        "regrow": 10
+      },
+      {
+        "id": "hollow",
+        "name": "Deadwood hollow",
+        "acts": "fwscav",
+        "dist": 0.8,
+        "stock": 90,
+        "cap": 90,
+        "regrow": 14
+      },
+      {
+        "id": "forest",
+        "name": "Forest edge",
+        "acts": "woodcut",
+        "dist": 0.5,
+        "stock": 60,
+        "cap": 60,
+        "regrow": 6
+      },
+      {
+        "id": "deepwood",
+        "name": "Deep forest",
+        "acts": "woodcut",
+        "dist": 1.3,
+        "stock": 250,
+        "cap": 250,
+        "regrow": 12
+      },
+      {
+        "id": "outcrop",
+        "name": "Stone outcrop",
+        "acts": "stoneB, stoneP",
+        "dist": 1,
+        "stock": 40,
+        "cap": 40,
+        "regrow": 0
+      },
+      {
+        "id": "ridge",
+        "name": "High ridge",
+        "acts": "stoneB, stoneP",
+        "dist": 2,
+        "stock": 160,
+        "cap": 160,
+        "regrow": 0
+      },
+      {
+        "id": "grounds",
+        "name": "Hunting grounds",
+        "acts": "huntW, huntB, huntF",
+        "dist": 1.5,
+        "stock": 90,
+        "cap": 90,
+        "regrow": 8
+      },
+      {
+        "id": "range",
+        "name": "Far range",
+        "acts": "huntW, huntB, huntF",
+        "dist": 2.2,
+        "stock": 300,
+        "cap": 300,
+        "regrow": 16
+      }
+    ],
+    "crafts": [
+      {
+        "id": "cAxe",
+        "name": "Stone axe",
+        "time": 1,
+        "cost": "fw:1, stone:1",
+        "gives": "tool:axe:1"
+      },
+      {
+        "id": "cBow",
+        "name": "Bow",
+        "time": 2,
+        "cost": "fw:5",
+        "gives": "tool:bow:1"
+      },
+      {
+        "id": "cArW",
+        "name": "Wooden arrows ×5",
+        "time": 1,
+        "cost": "fw:5",
+        "gives": "res:arw:5"
+      },
+      {
+        "id": "cArB",
+        "name": "Bone arrows ×5",
+        "time": 1,
+        "cost": "fw:5, bone:2",
+        "gives": "res:arb:5"
+      },
+      {
+        "id": "cArF",
+        "name": "Flint arrows ×5",
+        "time": 1.5,
+        "cost": "fw:5, stone:3",
+        "gives": "res:arf:5"
+      },
+      {
+        "id": "cPick",
+        "name": "Bone pick",
+        "time": 1,
+        "cost": "wood:1, bone:2",
+        "gives": "tool:pick:1"
+      },
+      {
+        "id": "cHut",
+        "name": "Hut",
+        "time": 12,
+        "cost": "wood:10, stone:4, bone:2",
+        "gives": "hut"
+      }
+    ],
+    "crews": [
+      {
+        "id": "crew1",
+        "name": "First crew",
+        "size": 1
+      }
+    ],
+    "settings": {
+      "eatDayPerHr": 0.25,
+      "burnNightPerHr": 0.25,
+      "hutDelayH": 24,
+      "hungerPenalty": 0.5,
+      "penaltyMode": 0,
+      "startWorkers": 1,
+      "walkSpeed": 1,
+      "carryCap": 3
+    }
+  }
+}
