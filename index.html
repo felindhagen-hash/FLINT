@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Holding — Economy Simulator v0.4</title>
+<style>
+  :root{
+    --night:#14161B; --panel:#1E222A; --panel2:#262B35; --line:#333A47;
+    --bone:#E6DFD0; --dim:#9AA3B0; --ember:#F0A030; --emberdim:#8A6222;
+    --danger:#D9614F; --ok:#7FA88F;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    --serif:Georgia,'Times New Roman',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--night);color:var(--bone);font-family:var(--mono);font-size:14px;line-height:1.5;padding-bottom:60px}
+  header{position:sticky;top:0;z-index:10;background:var(--night);border-bottom:1px solid var(--line);padding:10px 14px 8px}
+  h1{font-family:var(--serif);font-weight:400;font-size:19px}
+  h1 small{font-size:11px;color:var(--dim);margin-left:8px;font-family:var(--mono)}
+  .clockrow{display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap}
+  .daylabel{font-size:13px;color:var(--ember);white-space:nowrap}
+  #forecast{font-size:11px;color:var(--dim)}
+  #forecast.bad{color:var(--danger)}
+  .strip{display:flex;flex:1;min-width:160px;height:14px;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  .strip i{flex:1}
+  .strip i.day{background:#3A3120}.strip i.nite{background:#1B2030}
+  .strip i.now{outline:2px solid var(--ember);outline-offset:-2px}
+  .btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  button{background:var(--panel2);color:var(--bone);border:1px solid var(--line);border-radius:4px;padding:7px 12px;font-family:var(--mono);font-size:13px;cursor:pointer}
+  button:hover{border-color:var(--ember)}
+  button:focus-visible{outline:2px solid var(--ember)}
+  button.adv{color:var(--ember);border-color:var(--emberdim)}
+  button.sm{padding:3px 8px;font-size:12px}
+  button:disabled{opacity:.4;cursor:default}
+  main{padding:12px 14px;max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+  section,details{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px}
+  h2,summary{font-family:var(--serif);font-weight:400;font-size:15px;color:var(--ember);margin-bottom:8px;letter-spacing:.5px}
+  summary{cursor:pointer;margin-bottom:0}
+  details[open] summary{margin-bottom:8px}
+  h2 small,summary small{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px}
+  .stat{background:var(--panel2);border-radius:4px;padding:6px 8px}
+  .stat b{display:block;font-size:17px;font-weight:600}
+  .stat span{font-size:11px;color:var(--dim)}
+  .stat.warn b{color:var(--danger)}
+  .sitegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;font-size:11px}
+  .site{background:var(--panel2);border-radius:4px;padding:5px 8px;color:var(--dim)}
+  .site b{color:var(--bone);font-weight:400}
+  .site.dead{color:var(--danger)}
+  .site .bar{height:3px;background:var(--line);border-radius:2px;margin-top:3px;overflow:hidden}
+  .site .bar i{display:block;height:100%;background:var(--ok)}
+  .site.dead .bar i{background:var(--danger)}
+  .crew{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:8px;margin-bottom:8px}
+  .crewtop{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .crewtop input.cname{width:120px;background:var(--night);color:var(--bone);border:1px solid var(--line);border-radius:3px;padding:4px 6px;font-family:var(--mono);font-size:13px}
+  .crewtop input.csize{width:48px;background:var(--night);color:var(--bone);border:1px solid var(--line);border-radius:3px;padding:4px 6px;text-align:center;font-family:var(--mono);font-size:13px}
+  .cstatus{font-size:11px;color:var(--dim);margin-top:4px}
+  .cstatus b{color:var(--ember);font-weight:400}
+  .queue{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;align-items:center}
+  .qe{background:var(--night);border:1px solid var(--line);border-radius:3px;padding:2px 6px;font-size:11px;color:var(--bone);display:flex;gap:5px;align-items:center}
+  .qe.cur{border-color:var(--ember)}
+  .qe button{padding:0 4px;font-size:11px;border:none;background:none;color:var(--dim)}
+  .qadd{display:flex;gap:5px;align-items:center;margin-top:6px;flex-wrap:wrap}
+  .qadd select,.qadd input{background:var(--night);color:var(--bone);border:1px solid var(--line);border-radius:3px;padding:4px 6px;font-family:var(--mono);font-size:12px}
+  .qadd input{width:44px;text-align:center}
+  .assignsum{margin-top:4px;font-size:12px;color:var(--dim)}
+  .assignsum b{color:var(--bone)}
+  .craftgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+  .craft{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:8px;display:flex;flex-direction:column;gap:4px}
+  .craft .cost{font-size:11px;color:var(--dim)}
+  #cqueue{font-size:12px;color:var(--dim);margin-top:8px}
+  #cqueue b{color:var(--bone);font-weight:400}
+  canvas{width:100%;height:220px;background:var(--night);border:1px solid var(--line);border-radius:4px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--dim);margin-top:6px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  #log{max-height:220px;overflow-y:auto;font-size:12px;display:flex;flex-direction:column;gap:2px}
+  #log div{color:var(--dim)} #log div b{color:var(--bone);font-weight:400}
+  #log div.bad{color:var(--danger)} #log div.good{color:var(--ok)} #log div.mile{color:var(--ember)}
+  #deadlock{display:none;background:#3A1F1B;border:1px solid var(--danger);border-radius:6px;padding:10px 12px;font-size:13px}
+  #deadlock b{color:var(--danger)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;color:var(--dim);font-weight:400;padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:3px 4px;border-bottom:1px solid var(--line)}
+  td input,td select{width:100%;min-width:56px;background:var(--night);color:var(--bone);border:1px solid var(--line);border-radius:3px;padding:4px 6px;font-family:var(--mono);font-size:12px}
+  td input.num{min-width:44px;max-width:64px;text-align:center}
+  td input.wide{min-width:110px}
+  .tblwrap{overflow-x:auto}
+  .note{font-size:11px;color:var(--dim);margin-top:8px;line-height:1.6}
+  .flag{color:var(--ember)}
+  textarea{width:100%;height:180px;background:var(--night);color:var(--bone);border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:11px;padding:8px;margin-top:8px}
+  .iorow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  #saveState{font-size:11px;color:var(--dim)}
+  input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--ember)}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>The Holding <small>economy simulator v0.4 — sites · depletion · queues · earned idle</small></h1>
+  <div class="clockrow">
+    <span class="daylabel" id="dayLbl"></span>
+    <span id="forecast"></span>
+    <div class="strip" id="strip"></div>
+  </div>
+  <div class="btns">
+    <button class="adv" onclick="advance(1)">+1 h</button>
+    <button class="adv" onclick="advance(12)">+12 h</button>
+    <button class="adv" onclick="advance(24)">+1 day</button>
+    <button class="adv" onclick="advance(168)">+7 days</button>
+    <button onclick="fullReset()">↺ Reset run</button>
+    <span id="saveState"></span>
+  </div>
+</header>
+<main>
+  <div id="deadlock"></div>
+
+  <section><h2>Stores</h2><div class="grid" id="stores"></div></section>
+
+  <section><h2>The land <small>— organics regrow at dawn, minerals never do</small></h2><div class="sitegrid" id="sitesLive"></div></section>
+
+  <section>
+    <h2>Crews & queues <small>— queues loop; crews skip unworkable entries and try the next</small></h2>
+    <div id="workforce"></div>
+    <div class="assignsum" id="assignsum"></div>
+  </section>
+
+  <section>
+    <h2>Crafting orders <small>— built by crews with a Crafting entry in their queue</small></h2>
+    <div class="craftgrid" id="crafts"></div>
+    <div id="cqueue"></div>
+  </section>
+
+  <section>
+    <h2>Chronicle of stores</h2>
+    <canvas id="chart" width="860" height="220"></canvas>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section><h2>Event log <small>— deliveries, milestones (★), day ledgers</small></h2><div id="log"></div></section>
+
+  <details>
+    <summary>Data tables <small>— canonical = Fredrik's 2026-07-14 export + agreed retuning</small></summary>
+    <h2 style="margin-top:10px">Resources</h2>
+    <div class="tblwrap"><table id="tRes"></table></div>
+    <button class="sm" onclick="addRes()">+ resource</button>
+    <h2 style="margin-top:14px">Tools</h2>
+    <div class="tblwrap"><table id="tTool"></table></div>
+    <button class="sm" onclick="addTool()">+ tool</button>
+    <h2 style="margin-top:14px">Activities <small>— site work is routed via Sites below; cook/chop have no site</small></h2>
+    <div class="tblwrap"><table id="tAct"></table></div>
+    <button class="sm" onclick="addAct()">+ activity</button>
+    <h2 style="margin-top:14px">Sites <small>— acts: comma-sep activity ids · regrow 0 = depletes forever</small></h2>
+    <div class="tblwrap"><table id="tSite"></table></div>
+    <button class="sm" onclick="addSite()">+ site</button>
+    <h2 style="margin-top:14px">Craftables</h2>
+    <div class="tblwrap"><table id="tCraft"></table></div>
+    <button class="sm" onclick="addCraft()">+ craftable</button>
+    <h2 style="margin-top:14px">Settings</h2>
+    <div class="tblwrap"><table id="tSet"></table></div>
+    <div class="note"><span class="flag">v0.4 retuning (2026-07-15):</span> cook yields 0.25 bone/raw · bone arrows cost 2 bone/batch · flint arrows 3 stone/batch · hunts no longer haul firewood. <span class="flag">Earned-idle acceptance test:</span> set a queue, press +7 days, touch nothing — the holding must stay undegraded. penaltyMode: 0 = 50% cliff, 1 = proportional to shortfall.</div>
+  </details>
+
+  <details>
+    <summary>Save / Export / Import <small>— v0.3 exports import with automatic migration</small></summary>
+    <div class="iorow">
+      <button onclick="doExport(false)">Export data</button>
+      <button onclick="doExport(true)">Export data + run state</button>
+      <button onclick="doImport()">Import from textarea</button>
+      <button onclick="doSave()">Save now</button>
+      <button onclick="wipeSave()">Delete saved copy</button>
+    </div>
+    <textarea id="io" placeholder="Exported JSON appears here. Paste JSON here and press Import."></textarea>
+  </details>
+</main>
+
+<script>
+'use strict';
+/* ============ CANONICAL DATA v0.4 ============ */
+const DEFAULT_DATA = {
+  meta:{name:"Holding economy", version:"0.4", exported:null},
+  resources:[
+    {id:"food",  name:"prepared food", start:6},
+    {id:"raw",   name:"raw food",      start:0},
+    {id:"fw",    name:"firewood",      start:6},
+    {id:"wood",  name:"wood",          start:0},
+    {id:"stone", name:"stone",         start:0},
+    {id:"bone",  name:"bone",          start:0},
+    {id:"arw",   name:"wooden arrows", start:0},
+    {id:"arb",   name:"bone arrows",   start:0},
+    {id:"arf",   name:"flint arrows",  start:0}
+  ],
+  tools:[
+    {id:"axe",  name:"stone axe", life:24, start:0},
+    {id:"bow",  name:"bow",       life:60, start:0},
+    {id:"pick", name:"bone pick", life:24, start:0}
+  ],
+  activities:[
+    {id:"berries", name:"Gather berries",      tool:"",     inp:"",            out:"food:1",           wear:0},
+    {id:"fwscav",  name:"Scavenge firewood",   tool:"",     inp:"",            out:"fw:1",             wear:0},
+    {id:"stoneB",  name:"Stone (bare hands)",  tool:"",     inp:"",            out:"stone:0.25",       wear:0},
+    {id:"stoneP",  name:"Stone (bone pick)",   tool:"pick", inp:"",            out:"stone:0.5",        wear:1},
+    {id:"woodcut", name:"Cut wood",            tool:"axe",  inp:"",            out:"wood:1",           wear:1},
+    {id:"huntW",   name:"Hunt (wooden arrows)",tool:"bow",  inp:"arw:1",       out:"raw:2",            wear:1},
+    {id:"huntB",   name:"Hunt (bone arrows)",  tool:"bow",  inp:"arb:1",       out:"raw:3",            wear:1},
+    {id:"huntF",   name:"Hunt (flint arrows)", tool:"bow",  inp:"arf:1",       out:"raw:4",            wear:1},
+    {id:"cook",    name:"Cook",                tool:"",     inp:"raw:1, fw:4", out:"food:4, bone:0.25",wear:0},
+    {id:"chop",    name:"Chopping block",      tool:"axe",  inp:"wood:4",      out:"fw:8",             wear:1}
+  ],
+  sites:[
+    {id:"glade",   name:"South glade",     acts:"berries",              dist:0.5,  stock:60,  cap:60,  regrow:10},
+    {id:"heath",   name:"Heather slopes",  acts:"berries",              dist:1.2,  stock:90,  cap:90,  regrow:12},
+    {id:"copse",   name:"The copse",       acts:"fwscav",               dist:0.25, stock:50,  cap:50,  regrow:10},
+    {id:"hollow",  name:"Deadwood hollow", acts:"fwscav",               dist:0.8,  stock:90,  cap:90,  regrow:14},
+    {id:"forest",  name:"Forest edge",     acts:"woodcut",              dist:0.5,  stock:60,  cap:60,  regrow:6},
+    {id:"deepwood",name:"Deep forest",     acts:"woodcut",              dist:1.3,  stock:250, cap:250, regrow:12},
+    {id:"outcrop", name:"Stone outcrop",   acts:"stoneB, stoneP",       dist:1,    stock:40,  cap:40,  regrow:0},
+    {id:"ridge",   name:"High ridge",      acts:"stoneB, stoneP",       dist:2,    stock:160, cap:160, regrow:0},
+    {id:"grounds", name:"Hunting grounds", acts:"huntW, huntB, huntF",  dist:1.5,  stock:90,  cap:90,  regrow:8},
+    {id:"range",   name:"Far range",       acts:"huntW, huntB, huntF",  dist:2.2,  stock:300, cap:300, regrow:16}
+  ],
+  crafts:[
+    {id:"cAxe",  name:"Stone axe",        time:1,   cost:"fw:1, stone:1",            gives:"tool:axe:1"},
+    {id:"cBow",  name:"Bow",              time:2,   cost:"fw:5",                     gives:"tool:bow:1"},
+    {id:"cArW",  name:"Wooden arrows ×5", time:1,   cost:"fw:5",                     gives:"res:arw:5"},
+    {id:"cArB",  name:"Bone arrows ×5",   time:1,   cost:"fw:5, bone:2",             gives:"res:arb:5"},
+    {id:"cArF",  name:"Flint arrows ×5",  time:1.5, cost:"fw:5, stone:3",            gives:"res:arf:5"},
+    {id:"cPick", name:"Bone pick",        time:1,   cost:"wood:1, bone:2",           gives:"tool:pick:1"},
+    {id:"cHut",  name:"Hut",              time:12,  cost:"wood:10, stone:4, bone:2", gives:"hut"}
+  ],
+  crews:[{id:"crew1", name:"First crew", size:1}],
+  settings:{
+    eatDayPerHr:0.25, burnNightPerHr:0.25, hutDelayH:24,
+    hungerPenalty:0.5, penaltyMode:0, startWorkers:1,
+    walkSpeed:1, carryCap:3
+  }
+};
+const SETTING_LABELS={eatDayPerHr:"food eaten /worker-hr (day)", burnNightPerHr:"firewood burnt /worker-hr (night)",
+  hutDelayH:"hut → worker arrival (h)", hungerPenalty:"cliff-mode efficiency", penaltyMode:"penalty: 0 cliff / 1 proportional",
+  startWorkers:"starting workers", walkSpeed:"walk speed", carryCap:"carry capacity /worker"};
+const UPKEEP_ACTS = new Set(["berries","fwscav","huntW","huntB","huntF","cook","chop"]);
+
+let D = JSON.parse(JSON.stringify(DEFAULT_DATA));
+let S, A;
+
+/* ============ helpers ============ */
+const parseMap=s=>{const m={};(s||"").split(",").forEach(p=>{const[k,v]=p.split(":").map(x=>x.trim());if(k&&!isNaN(+v))m[k]=+v;});return m;};
+const parseIds=s=>(s||"").split(",").map(x=>x.trim()).filter(Boolean);
+const fmtQty=v=>(+v).toFixed(1).replace(/\.0$/,"");
+const resName=id=>(D.resources.find(r=>r.id===id)||{name:id}).name;
+const toolName=id=>(D.tools.find(t=>t.id===id)||{name:id}).name;
+const actById=id=>D.activities.find(a=>a.id===id);
+const siteById=id=>D.sites.find(s=>s.id===id);
+const outRateUnit=a=>Object.values(parseMap(a.out)).reduce((x,y)=>x+y,0);
+
+function freshState(){
+  const res={},tools={},wear={};
+  D.resources.forEach(r=>res[r.id]=+r.start||0);
+  D.tools.forEach(t=>{tools[t.id]=+t.start||0;wear[t.id]=0;});
+  return {hour:0, workers:+D.settings.startWorkers||1, res, tools, wear,
+    eff:1, dayFoodNeed:0, dayFoodShort:0, nightFwNeed:0, nightFwShort:0,
+    dayWh:{upkeep:0,progress:0,idle:0},
+    arrivals:[], queue:[], hist:[], crew:{}, miles:{}, exhaustNoted:{}};
+}
+function crewState(id){
+  if(!S.crew[id]) S.crew[id]={phase:"idle",rem:0,mode:null,actId:null,siteId:null,fillDone:0,fillTime:0,walk:0,usable:0,partial:null,idleToday:0,noted:{},note:null};
+  return S.crew[id];
+}
+function crewQ(id){ if(!A.crew[id]||!Array.isArray(A.crew[id].queue)) A.crew[id]={queue:[],idx:0}; return A.crew[id]; }
+function log(msg,cls){
+  const d=document.createElement("div"); if(cls)d.className=cls;
+  d.innerHTML="<b>D"+(Math.floor(S.hour/24)+1)+" "+String(S.hour%24).padStart(2,"0")+"h</b> — "+msg;
+  const box=document.getElementById("log"); box.prepend(d);
+  while(box.children.length>200) box.lastChild.remove();
+}
+function milestone(key,msg){ if(S.miles[key])return; S.miles[key]=S.hour; log("★ Milestone — "+msg,"mile"); }
+function whClass(actId){ return UPKEEP_ACTS.has(actId)?"upkeep":"progress"; }
+function spendWh(cls,crewSize,hours){ S.dayWh[cls]=(S.dayWh[cls]||0)+crewSize*hours; }
+
+/* ============ continuous (holding) work ============ */
+function continuousWork(n,a,hFrac){
+  if(n<=0)return 0;
+  let use=n;
+  if(a.tool) use=Math.min(use,Math.floor(S.tools[a.tool]||0));
+  if(use<=0)return 0;
+  const inp=parseMap(a.inp),out=parseMap(a.out);
+  let f=use*S.eff*hFrac;
+  for(const[r,q]of Object.entries(inp)){if(q>0)f=Math.min(f,(S.res[r]||0)/q);}
+  if(f<=1e-9)return 0;
+  for(const[r,q]of Object.entries(inp))S.res[r]=(S.res[r]||0)-q*f;
+  for(const[r,q]of Object.entries(out)){
+    const before=S.res[r]||0; S.res[r]=before+q*f;
+    if(r==="bone"&&before<0.001&&S.res[r]>0.001) milestone("bone","the first bones from the cookfire");
+  }
+  if(a.tool&&+a.wear>0)S.wear[a.tool]=(S.wear[a.tool]||0)+use*(+a.wear)*hFrac;
+  return f;
+}
+
+/* ============ queue entries ============
+   site entry: {site:"glade", act:"berries"}
+   holding entry: {task:"cook"|"chop"|"craft", hours:2}   */
+function entryLabel(e){
+  if(e.task==="craft")return "Crafting "+(e.hours||2)+"h";
+  if(e.task){const a=actById(e.task);return (a?a.name:e.task)+" "+(e.hours||2)+"h";}
+  const s=siteById(e.site),a=actById(e.act);
+  return (s?s.name:e.site)+" · "+(a?a.name:e.act);
+}
+/* returns "started" | "skip" | "wait" */
+function tryStart(c,cs,e,hourOfDay,t){
+  const size=+c.size||0;
+  if(e.task==="craft"){
+    if(!S.queue.length){cs.note="craft queue empty";return "skip";}
+    cs.mode="work";cs.actId="craft";cs.rem=+e.hours||2;return "started";
+  }
+  if(e.task){
+    const a=actById(e.task); if(!a)return "skip";
+    const inp=parseMap(a.inp);
+    for(const[r,q]of Object.entries(inp)){if(q>0&&(S.res[r]||0)<q*0.01){cs.note="no "+resName(r)+" for "+a.name;return "skip";}}
+    if(a.tool&&Math.floor(S.tools[a.tool]||0)<=0){cs.note=a.name+" needs "+toolName(a.tool);return "skip";}
+    cs.mode="work";cs.actId=a.id;cs.rem=+e.hours||2;return "started";
+  }
+  const site=siteById(e.site),a=actById(e.act);
+  if(!site||!a)return "skip";
+  if(!parseIds(site.acts).includes(a.id))return "skip";
+  if((+site.stock||0)<=0.01){cs.note=site.name+" is bare";return "skip";}
+  let usable=size;
+  if(a.tool)usable=Math.min(usable,Math.floor(S.tools[a.tool]||0));
+  if(usable<=0){cs.note=a.name+" needs "+toolName(a.tool)+" ("+Math.floor(S.tools[a.tool]||0)+" owned)";return "skip";}
+  const v=+D.settings.walkSpeed||1,C=+D.settings.carryCap||1,g=outRateUnit(a);
+  if(g<=0)return "skip";
+  const walk=(+site.dist)/v;
+  const remainingDaylight=(12-hourOfDay)-(1-t);
+  const maxFillByDusk=remainingDaylight-2*walk;
+  if(maxFillByDusk<=1e-9){cs.note=site.name+": trip waits for dawn ("+(2*walk).toFixed(1)+"h walking)";return "wait";}
+  const gTot=g*usable*(S.eff||1);
+  const fullFill=(C*size)/gTot;
+  const inp=parseMap(a.inp);
+  let byInp=Infinity;
+  for(const[r,q]of Object.entries(inp)){if(q>0)byInp=Math.min(byInp,(S.res[r]||0)/(q*usable*(S.eff||1)));}
+  const byStock=(+site.stock)/gTot;
+  const fill=Math.min(fullFill,byInp,byStock,maxFillByDusk);
+  if(fill<=1e-9){cs.note="missing inputs for "+a.name;return "skip";}
+  cs.mode="trip";cs.phase="out";cs.rem=walk;cs.walk=walk;
+  cs.actId=a.id;cs.siteId=site.id;cs.fillTime=fill;cs.fillDone=0;cs.usable=usable;
+  cs.partial=fill<Math.min(fullFill,byInp)-1e-9?"dusk":(fill<fullFill-1e-9?(byStock<byInp?"site":"inputs"):null);
+  return "started";
+}
+
+function advanceQ(cid){ const q=crewQ(cid); q.idx=(q.idx+1)%Math.max(1,q.queue.length); }
+
+function crewHour(c,hourOfDay){
+  const cs=crewState(c.id),size=+c.size||0;
+  if(size<=0)return;
+  let t=1.0;
+  let guard=0;
+  while(t>1e-9 && guard++<50){
+    if(cs.mode==="trip"){
+      if(cs.phase==="out"||cs.phase==="back"){
+        const adv=Math.min(t,cs.rem);cs.rem-=adv;t-=adv;
+        spendWh(whClass(cs.actId),size,adv);
+        if(cs.rem<=1e-9){
+          if(cs.phase==="out"){cs.phase="fill";cs.rem=cs.fillTime;}
+          else{
+            const a=actById(cs.actId),site=siteById(cs.siteId);
+            if(a){
+              const out=parseMap(a.out),wh=cs.fillDone*cs.usable*(S.eff||1);
+              const cargo=[];
+              for(const[r,q]of Object.entries(out)){S.res[r]=(S.res[r]||0)+q*wh;cargo.push(fmtQty(q*wh)+" "+resName(r));}
+              if(wh>0.01){
+                log("“"+c.name+"” returns from "+(site?site.name:"?")+" with "+cargo.join(", ")+
+                  (cs.partial==="dusk"?" (left early for dusk)":cs.partial==="inputs"?" (ran out of inputs)":cs.partial==="site"?" (the site ran bare)":""));
+                if(/^hunt/.test(cs.actId)) milestone("hunt","first successful hunt");
+              }
+            }
+            cs.mode=null;cs.phase="idle";cs.actId=null;cs.siteId=null;
+            advanceQ(c.id);
+          }
+        }
+      } else { /* fill */
+        const a=actById(cs.actId),site=siteById(cs.siteId);
+        const adv=Math.min(t,cs.rem);cs.rem-=adv;t-=adv;cs.fillDone+=adv;
+        spendWh(whClass(cs.actId),size,adv);
+        if(a){
+          const inp=parseMap(a.inp),wh=adv*cs.usable*(S.eff||1);
+          for(const[r,q]of Object.entries(inp))if(q>0)S.res[r]=Math.max(0,(S.res[r]||0)-q*wh);
+          if(a.tool&&+a.wear>0)S.wear[a.tool]=(S.wear[a.tool]||0)+cs.usable*(+a.wear)*adv;
+          if(site){
+            const g=outRateUnit(a)*cs.usable*(S.eff||1);
+            site.stock=Math.max(0,(+site.stock)-g*adv);
+            if(site.stock<=0.01){
+              cs.rem=0;
+              if(!S.exhaustNoted[site.id]){
+                S.exhaustNoted[site.id]=true;
+                log((+site.regrow>0)?(site.name+" is picked bare — it will regrow."):("<b>"+site.name+" is exhausted — it will never yield again.</b>"),"bad");
+              }
+            }
+          }
+        }
+        if(cs.rem<=1e-9){cs.phase="back";cs.rem=cs.walk;}
+      }
+    }
+    else if(cs.mode==="work"){
+      const adv=Math.min(t,cs.rem);
+      if(cs.actId==="craft"){
+        let effort=size*(S.eff||1)*adv;
+        while(effort>1e-9&&S.queue.length){
+          const job=S.queue[0],spend=Math.min(effort,job.remaining);
+          job.remaining-=spend;effort-=spend;
+          if(job.remaining<=1e-9){S.queue.shift();deliver(D.crafts.find(x=>x.id===job.craftId));}
+        }
+        spendWh("progress",size,adv);
+        if(!S.queue.length)cs.rem=0; else cs.rem-=adv;
+      } else {
+        const a=actById(cs.actId);
+        const f=a?continuousWork(size,a,adv):0;
+        spendWh(whClass(cs.actId),size,adv);
+        if(f<=1e-9)cs.rem=0; else cs.rem-=adv;
+      }
+      t-=adv;
+      if(cs.rem<=1e-9){cs.mode=null;cs.actId=null;advanceQ(c.id);}
+    }
+    else { /* idle: pick next workable entry */
+      const q=crewQ(c.id).queue;
+      if(!q.length){cs.idleToday+=t;spendWh("idle",size,t);t=0;break;}
+      let started=false,waiting=false,attempts=0;
+      let idx=crewQ(c.id).idx;
+      while(attempts<q.length){
+        const e=q[idx%q.length];
+        const r=tryStart(c,cs,e,hourOfDay,t);
+        if(r==="started"){A.crew[c.id].idx=idx%q.length;started=true;break;}
+        if(r==="wait")waiting=true;
+        idx++;attempts++;
+      }
+      if(!started){
+        if(cs.note&&!cs.noted[cs.note]){cs.noted[cs.note]=1;log("“"+c.name+"”: "+cs.note+(waiting?" — departs at dawn.":" — idling."),waiting?"":"bad");}
+        cs.idleToday+=t;spendWh("idle",size,t);t=0;
+      }
+    }
+  }
+}
+
+/* ============ main tick ============ */
+function simHour(){
+  const h=S.hour%24,day=h<12,set=D.settings;
+  if(h===0){
+    if(+set.penaltyMode===1){
+      const fF=S.dayFoodNeed>0?S.dayFoodShort/S.dayFoodNeed:0;
+      const fW=S.nightFwNeed>0?S.nightFwShort/S.nightFwNeed:0;
+      const worst=Math.max(fF,fW);
+      S.eff=Math.max(0.5,1-0.5*worst);
+      if(worst>0.01)log("Short rations — work at "+Math.round(S.eff*100)+"% today.","bad");
+    } else {
+      S.eff=(S.dayFoodShort>0||S.nightFwShort>0)?(+set.hungerPenalty||0.5):1;
+      if(S.dayFoodShort>0)log("The holding wakes hungry — work at "+Math.round(S.eff*100)+"% today.","bad");
+      if(S.nightFwShort>0)log("A cold night — work at "+Math.round(S.eff*100)+"% today.","bad");
+    }
+    S.dayFoodNeed=0;S.dayFoodShort=0;S.nightFwNeed=0;S.nightFwShort=0;
+    S.dayWh={upkeep:0,progress:0,idle:0};
+    D.sites.forEach(st=>{
+      if(+st.regrow>0&&+st.stock<+st.cap){
+        st.stock=Math.min(+st.cap,+st.stock+ +st.regrow);
+        if(st.stock>0.01)delete S.exhaustNoted[st.id];
+      }
+    });
+    Object.values(S.crew).forEach(cs=>{cs.idleToday=0;cs.noted={};cs.note=null;});
+  }
+  S.arrivals=S.arrivals.filter(tm=>{
+    if(S.hour>=tm){
+      S.workers++;
+      if(D.crews.length){D.crews[0].size=(+D.crews[0].size||0)+1;log("A newcomer joins “"+D.crews[0].name+"”. Population: "+S.workers+".","good");}
+      else log("A new worker arrives. Population: "+S.workers+".","good");
+      milestone("pop"+S.workers,"the holding numbers "+S.workers);
+      return false;
+    }return true;
+  });
+
+  if(day){
+    for(const c of D.crews)crewHour(c,h);
+    const need=S.workers*(+set.eatDayPerHr||0);
+    S.dayFoodNeed+=need;
+    if((S.res.food||0)>=need)S.res.food-=need;
+    else{S.dayFoodShort+=need-(S.res.food||0);S.res.food=0;}
+  } else {
+    const need=S.workers*(+set.burnNightPerHr||0);
+    S.nightFwNeed+=need;
+    if((S.res.fw||0)>=need)S.res.fw-=need;
+    else{const short=need-(S.res.fw||0);if(S.nightFwShort===0)log("The fire gutters in the night.","bad");S.nightFwShort+=short;S.res.fw=0;}
+  }
+  for(const t of D.tools){
+    while((S.wear[t.id]||0)>=+t.life&&(S.tools[t.id]||0)>0){
+      S.wear[t.id]-=+t.life;S.tools[t.id]--;log("A "+t.name+" breaks from use.","bad");
+    }
+    if((S.tools[t.id]||0)===0)S.wear[t.id]=Math.min(S.wear[t.id]||0,+t.life-0.001);
+  }
+  S.hour++;
+  const snap={h:S.hour};D.resources.forEach(r=>snap[r.id]=S.res[r.id]||0);
+  S.hist.push(snap);if(S.hist.length>24*30)S.hist.shift();
+  if(S.hour%24===0){
+    const a=S.hist[Math.max(0,S.hist.length-24)],b=S.hist[S.hist.length-1];
+    const parts=[];
+    D.resources.forEach(r=>{
+      const d=(b[r.id]||0)-(a[r.id]||0);
+      if(Math.abs(d)>0.05||["food","fw"].includes(r.id))parts.push(r.name+" "+fmtQty(b[r.id]||0)+" ("+(d>=0?"+":"")+d.toFixed(1)+")");
+    });
+    const wh=S.dayWh,tot=wh.upkeep+wh.progress+wh.idle;
+    const share=tot>0?Math.round(100*wh.upkeep/tot)+"% upkeep / "+Math.round(100*wh.progress/tot)+"% progress / "+Math.round(100*wh.idle/tot)+"% idle":"—";
+    log("Day "+(S.hour/24)+" ends · "+parts.join(" · ")+"<br>&nbsp;&nbsp;&nbsp;labor: "+share);
+  }
+}
+function deliver(c){
+  if(!c){log("A finished order had no recipe — discarded.","bad");return;}
+  const g=(c.gives||"").trim();
+  if(g==="hut"){S.arrivals.push(S.hour+(+D.settings.hutDelayH||24));log("A hut is raised — a newcomer arrives in "+D.settings.hutDelayH+" h.","good");milestone("hut","the first hut stands");}
+  else{
+    const[kind,id,qty]=g.split(":").map(x=>x.trim());
+    if(kind==="tool"){S.tools[id]=(S.tools[id]||0)+(+qty||1);milestone("tool_"+id,"first "+toolName(id));}
+    else if(kind==="res")S.res[id]=(S.res[id]||0)+(+qty||1);
+    log(c.name+" finished.","good");
+  }
+}
+function advance(n){for(let i=0;i<n;i++)simHour();render();doSave();}
+
+/* ============ craft ordering ============ */
+function canAfford(cost){return Object.entries(cost).every(([r,q])=>(S.res[r]||0)>=q);}
+function order(craftId){
+  const c=D.crafts.find(c=>c.id===craftId),cost=parseMap(c.cost);
+  if(!canAfford(cost))return;
+  Object.entries(cost).forEach(([r,q])=>S.res[r]-=q);
+  S.queue.push({craftId:c.id,name:c.name,remaining:+c.time||0});
+  log("Ordered: "+c.name+" ("+c.time+" worker-h). Cost paid.");
+  render();doSave();
+}
+function cancelOrder(i){
+  const job=S.queue[i];if(!job)return;
+  const c=D.crafts.find(c=>c.id===job.craftId);
+  if(c&&job.remaining>=+c.time-1e-9){
+    Object.entries(parseMap(c.cost)).forEach(([r,q])=>S.res[r]=(S.res[r]||0)+q);
+    log("Cancelled "+job.name+" — materials refunded.");
+  }else log("Cancelled "+job.name+" — materials lost (work begun).","bad");
+  S.queue.splice(i,1);render();doSave();
+}
+
+/* ============ deadlock ============ */
+function deadlockCheck(){
+  const el=document.getElementById("deadlock");
+  const reach=new Set(),haveTool=new Set();
+  D.resources.forEach(r=>{if((S.res[r.id]||0)>0)reach.add(r.id);});
+  D.tools.forEach(t=>{if((S.tools[t.id]||0)>0)haveTool.add(t.id);});
+  const isSiteAct=aid=>D.sites.some(st=>parseIds(st.acts).includes(aid));
+  const siteAlive=aid=>D.sites.some(st=>parseIds(st.acts).includes(aid)&&((+st.stock>0.01)||(+st.regrow>0)));
+  let grew=true;
+  while(grew){
+    grew=false;
+    for(const a of D.activities){
+      if(a.tool&&!haveTool.has(a.tool))continue;
+      if(!Object.keys(parseMap(a.inp)).every(r=>reach.has(r)))continue;
+      if(isSiteAct(a.id)&&!siteAlive(a.id))continue;
+      for(const r of Object.keys(parseMap(a.out)))if(!reach.has(r)){reach.add(r);grew=true;}
+    }
+    for(const c of D.crafts){
+      if(!Object.keys(parseMap(c.cost)).every(r=>reach.has(r)))continue;
+      const g=(c.gives||"").trim();if(g==="hut")continue;
+      const[kind,id]=g.split(":").map(x=>x.trim());
+      if(kind==="tool"&&!haveTool.has(id)){haveTool.add(id);grew=true;}
+      if(kind==="res"&&!reach.has(id)){reach.add(id);grew=true;}
+    }
+  }
+  const wanted=new Set();
+  D.activities.forEach(a=>Object.keys(parseMap(a.inp)).forEach(r=>wanted.add(r)));
+  D.crafts.forEach(c=>Object.keys(parseMap(c.cost)).forEach(r=>wanted.add(r)));
+  const dead=[...wanted].filter(r=>!reach.has(r));
+  if(dead.length){
+    el.style.display="block";
+    el.innerHTML="<b>Unreachable from current state:</b> "+dead.map(resName).join(", ")+". Anything needing these is locked forever (exhausted sites count).";
+  }else el.style.display="none";
+}
+
+/* ============ persistence ============ */
+const hasStorage=typeof window!=="undefined"&&!!window.storage;
+let saveTimer=null,saveNote=document.getElementById("saveState");
+async function doSave(){
+  if(!hasStorage){saveNote.textContent="no autosave here — use Export";return;}
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    try{
+      await window.storage.set("holding-sim-v04",JSON.stringify({data:D,state:S,assign:A}));
+      saveNote.textContent="autosaved · D"+(Math.floor(S.hour/24)+1);
+    }catch(e){saveNote.textContent="autosave failed — use Export";}
+  },300);
+}
+async function tryLoad(){
+  if(!hasStorage)return false;
+  try{
+    const r=await window.storage.get("holding-sim-v04");
+    if(!r)return false;
+    const p=JSON.parse(r.value);
+    if(!p||!p.data||!p.state)return false;
+    D=p.data;S=p.state;A=p.assign||{crew:{}};
+    return true;
+  }catch(e){return false;}
+}
+async function wipeSave(){
+  if(hasStorage){try{await window.storage.delete("holding-sim-v04");}catch(e){}}
+  saveNote.textContent="saved copy deleted";
+}
+
+/* ============ export / import (+v0.3 migration) ============ */
+function migrate(d){
+  if(!d.sites){
+    d.sites=[];
+    (d.activities||[]).forEach(a=>{
+      if(+a.dist>0){
+        d.sites.push({id:"s_"+a.id,name:(a.name||a.id)+" grounds",acts:a.id,dist:+a.dist,stock:999,cap:999,regrow:999});
+      }
+      delete a.dist;
+    });
+  }
+  if(!d.crews)d.crews=[{id:"crew1",name:"First crew",size:+((d.settings||{}).startWorkers)||1}];
+  if(d.meta)delete d.meta.mode;
+  if(d.settings&&d.settings.penaltyMode===undefined)d.settings.penaltyMode=0;
+  return d;
+}
+function migrateAssign(a){
+  const out={crew:{}};
+  if(a&&a.crew)for(const[cid,v]of Object.entries(a.crew)){
+    if(typeof v==="string"&&v){
+      if(v==="craft")out.crew[cid]={queue:[{task:"craft",hours:4}],idx:0};
+      else{
+        const st=(D.sites||[]).find(s=>parseIds(s.acts).includes(v));
+        out.crew[cid]=st?{queue:[{site:st.id,act:v}],idx:0}:(["cook","chop"].includes(v)?{queue:[{task:v,hours:4}],idx:0}:{queue:[],idx:0});
+      }
+    }else if(v&&Array.isArray(v.queue))out.crew[cid]=v;
+    else out.crew[cid]={queue:[],idx:0};
+  }
+  return out;
+}
+function doExport(withState){
+  D.meta.exported=new Date().toISOString();
+  const payload=withState?{data:D,state:S,assign:A}:{data:D};
+  document.getElementById("io").value=JSON.stringify(payload,null,2);
+  log("Exported "+(withState?"data + run state":"data")+" — copy it somewhere safe.");
+}
+function doImport(){
+  try{
+    const p=JSON.parse(document.getElementById("io").value);
+    let migrated=false;
+    if(p.data){migrated=!p.data.sites;D=migrate(p.data);}
+    else if(p.resources){migrated=!p.sites;D=migrate(p);}
+    else throw new Error("no data block");
+    if(p.state){S=p.state;S.crew=S.crew||{};S.miles=S.miles||{};S.exhaustNoted=S.exhaustNoted||{};S.dayWh=S.dayWh||{upkeep:0,progress:0,idle:0};
+      S.dayFoodNeed=S.dayFoodNeed||0;S.dayFoodShort=S.dayFoodShort||0;S.nightFwNeed=S.nightFwNeed||0;S.nightFwShort=S.nightFwShort||0;
+      A=migrateAssign(p.assign);}
+    else{S=freshState();A=p.assign?migrateAssign(p.assign):{crew:{}};}
+    ensureAssign();rebuildTables();render();doSave();
+    log("Import applied"+(migrated?" (migrated from pre-0.4 — one infinite site created per travelling activity; edit Sites to taste)":"")+".","good");
+  }catch(e){log("Import failed: "+e.message,"bad");}
+}
+
+/* ============ tables UI ============ */
+function ensureAssign(){A=A||{};A.crew=A.crew||{};D.crews.forEach(c=>crewQ(c.id));}
+function inp(val,cls,fn){const i=document.createElement("input");i.className=cls||"";i.value=val;i.oninput=()=>{fn(i.value);scheduleSoft();};return i;}
+function numInp(val,fn){const i=inp(val,"num",v=>fn(+v||0));i.type="number";i.step="any";return i;}
+function delBtn(fn){const b=document.createElement("button");b.className="sm";b.textContent="✕";b.onclick=()=>{fn();rebuildTables();render();doSave();};return b;}
+let softTimer=null;
+function scheduleSoft(){clearTimeout(softTimer);softTimer=setTimeout(()=>{render();doSave();},400);}
+
+function rebuildTables(){
+  const tR=document.getElementById("tRes");
+  tR.innerHTML="<tr><th>id</th><th>name</th><th>start</th><th></th></tr>";
+  D.resources.forEach((r,ix)=>{
+    const tr=tR.insertRow();
+    tr.insertCell().appendChild(inp(r.id,"num",v=>r.id=v.trim()));
+    tr.insertCell().appendChild(inp(r.name,"wide",v=>r.name=v));
+    tr.insertCell().appendChild(numInp(r.start,v=>r.start=v));
+    tr.insertCell().appendChild(delBtn(()=>D.resources.splice(ix,1)));
+  });
+  const tT=document.getElementById("tTool");
+  tT.innerHTML="<tr><th>id</th><th>name</th><th>life (work-h)</th><th>start</th><th></th></tr>";
+  D.tools.forEach((t,ix)=>{
+    const tr=tT.insertRow();
+    tr.insertCell().appendChild(inp(t.id,"num",v=>t.id=v.trim()));
+    tr.insertCell().appendChild(inp(t.name,"wide",v=>t.name=v));
+    tr.insertCell().appendChild(numInp(t.life,v=>t.life=v));
+    tr.insertCell().appendChild(numInp(t.start,v=>t.start=v));
+    tr.insertCell().appendChild(delBtn(()=>D.tools.splice(ix,1)));
+  });
+  const tA=document.getElementById("tAct");
+  tA.innerHTML="<tr><th>id</th><th>name</th><th>tool</th><th>inputs /h</th><th>outputs /h</th><th>wear /h</th><th></th></tr>";
+  D.activities.forEach((a,ix)=>{
+    const tr=tA.insertRow();
+    tr.insertCell().appendChild(inp(a.id,"num",v=>a.id=v.trim()));
+    tr.insertCell().appendChild(inp(a.name,"wide",v=>a.name=v));
+    const sel=document.createElement("select");
+    sel.innerHTML='<option value="">— none —</option>'+D.tools.map(t=>'<option value="'+t.id+'"'+(t.id===a.tool?" selected":"")+'>'+t.name+"</option>").join("");
+    sel.onchange=()=>{a.tool=sel.value;scheduleSoft();};
+    tr.insertCell().appendChild(sel);
+    tr.insertCell().appendChild(inp(a.inp,"wide",v=>a.inp=v));
+    tr.insertCell().appendChild(inp(a.out,"wide",v=>a.out=v));
+    tr.insertCell().appendChild(numInp(a.wear,v=>a.wear=v));
+    tr.insertCell().appendChild(delBtn(()=>D.activities.splice(ix,1)));
+  });
+  const tS=document.getElementById("tSite");
+  tS.innerHTML="<tr><th>id</th><th>name</th><th>acts</th><th>dist</th><th>stock</th><th>cap</th><th>regrow/day</th><th></th></tr>";
+  D.sites.forEach((s,ix)=>{
+    const tr=tS.insertRow();
+    tr.insertCell().appendChild(inp(s.id,"num",v=>s.id=v.trim()));
+    tr.insertCell().appendChild(inp(s.name,"wide",v=>s.name=v));
+    tr.insertCell().appendChild(inp(s.acts,"wide",v=>s.acts=v));
+    tr.insertCell().appendChild(numInp(s.dist,v=>s.dist=v));
+    tr.insertCell().appendChild(numInp(s.stock,v=>s.stock=v));
+    tr.insertCell().appendChild(numInp(s.cap,v=>s.cap=v));
+    tr.insertCell().appendChild(numInp(s.regrow,v=>s.regrow=v));
+    tr.insertCell().appendChild(delBtn(()=>D.sites.splice(ix,1)));
+  });
+  const tC=document.getElementById("tCraft");
+  tC.innerHTML="<tr><th>name</th><th>time (worker-h)</th><th>cost</th><th>gives</th><th></th></tr>";
+  D.crafts.forEach((c,ix)=>{
+    const tr=tC.insertRow();
+    tr.insertCell().appendChild(inp(c.name,"wide",v=>c.name=v));
+    tr.insertCell().appendChild(numInp(c.time,v=>c.time=v));
+    tr.insertCell().appendChild(inp(c.cost,"wide",v=>c.cost=v));
+    tr.insertCell().appendChild(inp(c.gives,"wide",v=>c.gives=v));
+    tr.insertCell().appendChild(delBtn(()=>D.crafts.splice(ix,1)));
+  });
+  const tSet=document.getElementById("tSet");
+  tSet.innerHTML="";
+  Object.keys(D.settings).forEach(k=>{
+    const tr=tSet.insertRow();
+    tr.insertCell().textContent=SETTING_LABELS[k]||k;
+    tr.insertCell().appendChild(numInp(D.settings[k],v=>D.settings[k]=v));
+  });
+  ensureAssign();
+}
+let uid=1;
+function addRes(){D.resources.push({id:"res"+(uid++),name:"new resource",start:0});rebuildTables();render();}
+function addTool(){D.tools.push({id:"tool"+(uid++),name:"new tool",life:24,start:0});rebuildTables();render();}
+function addAct(){D.activities.push({id:"act"+(uid++),name:"New activity",tool:"",inp:"",out:"",wear:0});rebuildTables();render();}
+function addSite(){D.sites.push({id:"site"+(uid++),name:"New site",acts:"",dist:1,stock:50,cap:50,regrow:0});rebuildTables();render();}
+function addCraft(){D.crafts.push({id:"craft"+(uid++),name:"New craftable",time:1,cost:"",gives:""});rebuildTables();render();}
+function addCrew(){const id="crew"+(uid++);D.crews.push({id,name:"New crew",size:0});crewQ(id);render();doSave();}
+
+/* ============ workforce UI ============ */
+function targetOptions(){
+  const opts=[];
+  D.sites.forEach(s=>parseIds(s.acts).forEach(aid=>{
+    const a=actById(aid);if(!a)return;
+    let warn="";
+    if(a.tool&&Math.floor(S.tools[a.tool]||0)<=0)warn=" — needs "+toolName(a.tool)+" ("+Math.floor(S.tools[a.tool]||0)+")";
+    opts.push({v:"site|"+s.id+"|"+aid,label:s.name+" · "+a.name+" (d"+s.dist+")"+warn});
+  }));
+  ["cook","chop"].forEach(aid=>{const a=actById(aid);if(a){
+    let warn="";
+    if(a.tool&&Math.floor(S.tools[a.tool]||0)<=0)warn=" — needs "+toolName(a.tool);
+    opts.push({v:"task|"+aid,label:a.name+" (at the holding)"+warn});
+  }});
+  opts.push({v:"task|craft",label:"Crafting (order queue)"});
+  return opts;
+}
+function renderWorkforce(){
+  const box=document.getElementById("workforce");box.innerHTML="";
+  D.crews.forEach((c,ix)=>{
+    const div=document.createElement("div");div.className="crew";
+    const top=document.createElement("div");top.className="crewtop";
+    const nm=document.createElement("input");nm.className="cname";nm.value=c.name;nm.oninput=()=>{c.name=nm.value;scheduleSoft();};
+    const sz=document.createElement("input");sz.className="csize";sz.type="number";sz.min=0;sz.value=c.size;
+    sz.oninput=()=>{c.size=Math.max(0,+sz.value||0);scheduleSoft();};
+    const del=document.createElement("button");del.className="sm";del.textContent="✕ crew";
+    del.onclick=()=>{D.crews.splice(ix,1);delete A.crew[c.id];delete S.crew[c.id];render();doSave();};
+    top.append(nm,sz,del);div.appendChild(top);
+    const st=document.createElement("div");st.className="cstatus";
+    const cs=S.crew[c.id];
+    if(cs&&cs.mode==="trip"){
+      const a=actById(cs.actId)||{name:"?"},sname=(siteById(cs.siteId)||{name:"?"}).name;
+      st.innerHTML={out:"<b>Walking out</b> to "+sname,fill:"<b>"+a.name+"</b> at "+sname,back:"<b>Returning</b> from "+sname}[cs.phase]+" · "+cs.rem.toFixed(1)+"h left";
+    }else if(cs&&cs.mode==="work"){
+      st.innerHTML="<b>"+(cs.actId==="craft"?"Crafting":(actById(cs.actId)||{name:cs.actId}).name)+"</b> at the holding · "+cs.rem.toFixed(1)+"h left";
+    }else if(cs&&cs.note){st.innerHTML=cs.note;}
+    else st.textContent="Resting.";
+    if(cs&&cs.idleToday>0.05)st.innerHTML+=" · idled "+cs.idleToday.toFixed(1)+"h today";
+    div.appendChild(st);
+    const qwrap=document.createElement("div");qwrap.className="queue";
+    const q=crewQ(c.id);
+    q.queue.forEach((e,qi)=>{
+      const chip=document.createElement("span");chip.className="qe"+(qi===q.idx?" cur":"");
+      chip.textContent=(qi+1)+". "+entryLabel(e);
+      const x=document.createElement("button");x.textContent="✕";
+      x.onclick=()=>{q.queue.splice(qi,1);if(q.idx>=q.queue.length)q.idx=0;render();doSave();};
+      chip.appendChild(x);qwrap.appendChild(chip);
+    });
+    if(!q.queue.length){const em=document.createElement("span");em.style.cssText="font-size:11px;color:var(--dim)";em.textContent="empty queue — crew rests";qwrap.appendChild(em);}
+    div.appendChild(qwrap);
+    const add=document.createElement("div");add.className="qadd";
+    const sel=document.createElement("select");
+    sel.innerHTML=targetOptions().map(o=>'<option value="'+o.v+'">'+o.label+"</option>").join("");
+    const hrs=document.createElement("input");hrs.type="number";hrs.min=0.5;hrs.step=0.5;hrs.value=2;hrs.title="hours (holding tasks only)";
+    const btn=document.createElement("button");btn.className="sm";btn.textContent="+ add to queue";
+    btn.onclick=()=>{
+      const parts=sel.value.split("|");
+      q.queue.push(parts[0]==="site"?{site:parts[1],act:parts[2]}:{task:parts[1],hours:+hrs.value||2});
+      render();doSave();
+    };
+    add.append(sel,hrs,btn);div.appendChild(add);
+    box.appendChild(div);
+  });
+  const addC=document.createElement("button");addC.className="sm";addC.textContent="+ crew";addC.onclick=addCrew;
+  box.appendChild(addC);
+  const tot=D.crews.reduce((s,c)=>s+(+c.size||0),0);
+  document.getElementById("assignsum").innerHTML="Crewed <b>"+tot+"</b> of <b>"+S.workers+"</b> workers"+
+    (tot>S.workers?' — <span style="color:var(--danger)">more crewed than exist; trim sizes</span>':tot<S.workers?" — "+(S.workers-tot)+" uncrewed (resting)":"")+
+    " · <span style='color:var(--dim)'>in-game, crews unlock with the first expert; the lab keeps them free</span>";
+}
+
+/* ============ render ============ */
+const PALETTE=["#8FB573","#F0A030","#B08B5E","#9AA3B0","#C96F6F","#7FA88F","#C9A85C","#8E9BC9","#C97FB0"];
+function render(){
+  const h=S.hour%24;
+  document.getElementById("dayLbl").textContent="Day "+(Math.floor(S.hour/24)+1)+" · "+String(h).padStart(2,"0")+":00 "+(h<12?"☀ day shift":"☾ night");
+  const need=S.workers*(+D.settings.burnNightPerHr||0)*12;
+  const fc=document.getElementById("forecast");
+  fc.textContent="tonight: −"+fmtQty(need)+" fw (have "+fmtQty(S.res.fw||0)+")";
+  fc.className=(S.res.fw||0)<need?"bad":"";
+  const strip=document.getElementById("strip");
+  if(!strip.children.length)for(let i=0;i<24;i++){const s=document.createElement("i");s.className=i<12?"day":"nite";strip.appendChild(s);}
+  [...strip.children].forEach((s,i)=>s.classList.toggle("now",i===h));
+  const st=document.getElementById("stores");
+  const eff=S.eff<1?' <span style="color:var(--danger)">('+Math.round(S.eff*100)+"% eff.)</span>":"";
+  let html="";
+  D.resources.forEach(r=>{
+    const warn=(r.id==="fw"&&(S.res.fw||0)<need)||(r.id==="food"&&(S.res.food||0)<S.workers*(+D.settings.eatDayPerHr||0)*12);
+    html+='<div class="stat'+(warn?" warn":"")+'"><b>'+fmtQty(S.res[r.id]||0)+"</b><span>"+r.name+"</span></div>";
+  });
+  D.tools.forEach(t=>{html+='<div class="stat"><b>'+(S.tools[t.id]||0)+"</b><span>"+t.name+(S.tools[t.id]>0?" · "+Math.max(0,Math.ceil(+t.life-(S.wear[t.id]||0)))+"h left":"")+"</span></div>";});
+  html+='<div class="stat"><b>'+S.workers+"</b><span>workers"+eff+"</span></div>";
+  st.innerHTML=html;
+  const sl=document.getElementById("sitesLive");
+  sl.innerHTML=D.sites.map(s=>{
+    const frac=+s.cap>0?Math.max(0,Math.min(1,+s.stock/+s.cap)):0;
+    const dead=+s.stock<=0.01&&+s.regrow<=0;
+    return '<div class="site'+(dead?" dead":"")+'"><b>'+s.name+"</b> · d"+s.dist+(dead?" · EXHAUSTED":" · "+fmtQty(s.stock)+"/"+fmtQty(s.cap)+(+s.regrow>0?" ↺"+s.regrow:""))+'<div class="bar"><i style="width:'+(frac*100)+'%"></i></div></div>';
+  }).join("");
+  renderWorkforce();
+  const cg=document.getElementById("crafts");cg.innerHTML="";
+  D.crafts.forEach(c=>{
+    const cost=parseMap(c.cost);
+    const costTxt=Object.entries(cost).map(([r,q])=>q+" "+resName(r)).join(" + ")||"free";
+    const d=document.createElement("div");d.className="craft";
+    d.innerHTML="<span>"+c.name+"</span><span class='cost'>"+costTxt+" · "+c.time+" worker-h</span>";
+    const b=document.createElement("button");b.textContent="Order";b.disabled=!canAfford(cost);b.onclick=()=>order(c.id);
+    d.appendChild(b);cg.appendChild(d);
+  });
+  const q=document.getElementById("cqueue");
+  q.innerHTML=S.queue.length?("Queue: "+S.queue.map((j,i)=>"<b>"+j.name+"</b> ("+fmtQty(j.remaining)+"h) <button class='sm' onclick='cancelOrder("+i+")'>✕</button>").join(" → ")):"Queue empty.";
+  document.getElementById("legend").innerHTML=D.resources.map((r,i)=>"<span><i style='background:"+PALETTE[i%PALETTE.length]+"'></i>"+r.name+"</span>").join("");
+  drawChart();deadlockCheck();
+}
+function drawChart(){
+  const cv=document.getElementById("chart"),ctx=cv.getContext("2d"),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  if(S.hist.length<2){ctx.fillStyle="#555";ctx.font="12px monospace";ctx.fillText("advance time to draw the chronicle",20,H/2);return;}
+  const hist=S.hist,n=hist.length;
+  let max=1;hist.forEach(p=>D.resources.forEach(r=>{if((p[r.id]||0)>max)max=p[r.id];}));
+  const x=i=>i/(n-1)*(W-10)+5,y=v=>H-8-(v/max)*(H-20);
+  ctx.fillStyle="rgba(40,50,80,.25)";
+  for(let i=0;i<n;i++){const hr=hist[i].h%24;if(hr>12||hr===0)ctx.fillRect(x(i),0,Math.max(1,(W-10)/(n-1)),H);}
+  ctx.strokeStyle="#333A47";ctx.beginPath();ctx.moveTo(0,y(0));ctx.lineTo(W,y(0));ctx.stroke();
+  D.resources.forEach((r,ri)=>{
+    ctx.strokeStyle=PALETTE[ri%PALETTE.length];ctx.lineWidth=1.5;ctx.beginPath();
+    hist.forEach((p,i)=>{i?ctx.lineTo(x(i),y(p[r.id]||0)):ctx.moveTo(x(i),y(p[r.id]||0));});
+    ctx.stroke();
+  });
+  ctx.fillStyle="#666";ctx.font="10px monospace";ctx.fillText("max "+max.toFixed(0),8,12);
+}
+
+/* ============ boot ============ */
+function fullReset(){
+  S=freshState();A={crew:{}};ensureAssign();
+  if(D.crews[0]){
+    const starter=[{site:"glade",act:"berries"},{site:"copse",act:"fwscav"}].filter(e=>siteById(e.site)&&actById(e.act));
+    A.crew[D.crews[0].id]={queue:starter,idx:0};
+  }
+  document.getElementById("log").innerHTML="";
+  log("The holding begins. "+S.workers+" worker in “"+(D.crews[0]?D.crews[0].name:"no crew")+"”, a two-entry queue, twelve hours of daylight.");
+  render();doSave();
+}
+(async()=>{
+  const resumed=await tryLoad();
+  ensureAssign();rebuildTables();
+  if(resumed){log("Resumed autosaved run (day "+(Math.floor(S.hour/24)+1)+").");render();}
+  else fullReset();
+  if(!hasStorage)saveNote.textContent="no autosave in this environment — use Export";
+})();
+</script>
+</body>
+</html>
