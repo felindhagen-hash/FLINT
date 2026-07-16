@@ -44,10 +44,16 @@ logged with cargo, ★ milestone stamps. Import migrates v0.3 exports
    telegraphed design — do not add randomness ad hoc.
 3. **Everything upfront.** Costs, durations, risks, forecasts shown before
    commitment. New mechanics must surface their numbers in the UI.
-4. **Earned idle + solvency law.** Standing queues must keep the holding
-   solvent at casual check-in cadence; attention buys speed (~1.5–2×),
-   never survival. Acceptance test: default queue, +7 days, hands off,
-   undegraded. Run this test after any economy-touching change.
+4. **Earned idle + solvency law.** A four-site rotation (glade → copse →
+   heath → hollow) must keep the holding solvent at casual check-in
+   cadence; attention buys speed (~1.5–2×), never survival. Acceptance
+   test: four-site rotation queue, +7 days, hands off, undegraded. Run
+   this test after any economy-touching change. The two-entry starter
+   queue (glade/copse) is intentionally lighter and may degrade over a
+   long run — rotating to more sites is the intended player response,
+   not a bug. Regrow law (amended v0.4.3): 20–30% of one worker's daily
+   harvest per site; a site visited every k days drains only if
+   regrow < harvest/k.
 5. **Day/night cycle is load-bearing** (warmth pressure, dusk deadlines,
    trip quantization). Never remove or bypass it.
 6. **Sites are data rows, never map coordinates.** No map, no pathing.
