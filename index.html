@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Holding — Economy Simulator v0.4</title>
+<title>Holding — Economy Simulator v0.4.1</title>
 <style>
   :root{
     --night:#14161B; --panel:#1E222A; --panel2:#262B35; --line:#333A47;
@@ -96,7 +96,7 @@
 </head>
 <body>
 <header>
-  <h1>The Holding <small>economy simulator v0.4 — sites · depletion · queues · earned idle</small></h1>
+  <h1>The Holding <small>economy simulator v0.4.1 — sites · depletion · queues · earned idle</small></h1>
   <div class="clockrow">
     <span class="daylabel" id="dayLbl"></span>
     <span id="forecast"></span>
@@ -139,7 +139,7 @@
   <section><h2>Event log <small>— deliveries, milestones (★), day ledgers</small></h2><div id="log"></div></section>
 
   <details>
-    <summary>Data tables <small>— canonical = Fredrik's 2026-07-14 export + agreed retuning</small></summary>
+    <summary>Data tables <small>— canonical = Fredrik's 2026-07-16 export + v0.4.1 integer rescale</small></summary>
     <h2 style="margin-top:10px">Resources</h2>
     <div class="tblwrap"><table id="tRes"></table></div>
     <button class="sm" onclick="addRes()">+ resource</button>
@@ -157,7 +157,7 @@
     <button class="sm" onclick="addCraft()">+ craftable</button>
     <h2 style="margin-top:14px">Settings</h2>
     <div class="tblwrap"><table id="tSet"></table></div>
-    <div class="note"><span class="flag">v0.4 retuning (2026-07-15):</span> cook yields 0.25 bone/raw · bone arrows cost 2 bone/batch · flint arrows 3 stone/batch · hunts no longer haul firewood. <span class="flag">Earned-idle acceptance test:</span> set a queue, press +7 days, touch nothing — the holding must stay undegraded. penaltyMode: 0 = 50% cliff, 1 = proportional to shortfall.</div>
+    <div class="note"><span class="flag">v0.4.1 integer economy (2026-07-16):</span> food/firewood/stone/bone rescaled ×4 (wood/raw/arrows unchanged); all store transactions round to the nearest whole unit on commit — trip fill/walk timing stays continuous underneath. Organic site regrow set to ~50% of one worker's daily harvest, so a single crew can no longer camp a site forever — rotate between sites. cook yields 1 bone/raw · bone arrows cost 8 bone/batch · flint arrows 12 stone/batch · hunts no longer haul firewood. <span class="flag">Earned-idle acceptance test:</span> set a queue, press +7 days, touch nothing — the holding must stay undegraded. penaltyMode: 0 = 50% cliff, 1 = proportional to shortfall.</div>
   </details>
 
   <details>
@@ -177,11 +177,11 @@
 'use strict';
 /* ============ CANONICAL DATA v0.4 ============ */
 const DEFAULT_DATA = {
-  meta:{name:"Holding economy", version:"0.4", exported:null},
+  meta:{name:"Holding economy", version:"0.4.1", exported:null},
   resources:[
-    {id:"food",  name:"prepared food", start:6},
+    {id:"food",  name:"prepared food", start:24},
     {id:"raw",   name:"raw food",      start:0},
-    {id:"fw",    name:"firewood",      start:6},
+    {id:"fw",    name:"firewood",      start:24},
     {id:"wood",  name:"wood",          start:0},
     {id:"stone", name:"stone",         start:0},
     {id:"bone",  name:"bone",          start:0},
@@ -195,43 +195,43 @@ const DEFAULT_DATA = {
     {id:"pick", name:"bone pick", life:24, start:0}
   ],
   activities:[
-    {id:"berries", name:"Gather berries",      tool:"",     inp:"",            out:"food:1",           wear:0},
-    {id:"fwscav",  name:"Scavenge firewood",   tool:"",     inp:"",            out:"fw:1",             wear:0},
-    {id:"stoneB",  name:"Stone (bare hands)",  tool:"",     inp:"",            out:"stone:0.25",       wear:0},
-    {id:"stoneP",  name:"Stone (bone pick)",   tool:"pick", inp:"",            out:"stone:0.5",        wear:1},
-    {id:"woodcut", name:"Cut wood",            tool:"axe",  inp:"",            out:"wood:1",           wear:1},
-    {id:"huntW",   name:"Hunt (wooden arrows)",tool:"bow",  inp:"arw:1",       out:"raw:2",            wear:1},
-    {id:"huntB",   name:"Hunt (bone arrows)",  tool:"bow",  inp:"arb:1",       out:"raw:3",            wear:1},
-    {id:"huntF",   name:"Hunt (flint arrows)", tool:"bow",  inp:"arf:1",       out:"raw:4",            wear:1},
-    {id:"cook",    name:"Cook",                tool:"",     inp:"raw:1, fw:4", out:"food:4, bone:0.25",wear:0},
-    {id:"chop",    name:"Chopping block",      tool:"axe",  inp:"wood:4",      out:"fw:8",             wear:1}
+    {id:"berries", name:"Gather berries",      tool:"",     inp:"",            out:"food:4",         wear:0},
+    {id:"fwscav",  name:"Scavenge firewood",   tool:"",     inp:"",            out:"fw:4",           wear:0},
+    {id:"stoneB",  name:"Stone (bare hands)",  tool:"",     inp:"",            out:"stone:1",        wear:0},
+    {id:"stoneP",  name:"Stone (bone pick)",   tool:"pick", inp:"",            out:"stone:2",        wear:1},
+    {id:"woodcut", name:"Cut wood",            tool:"axe",  inp:"",            out:"wood:1",         wear:1},
+    {id:"huntW",   name:"Hunt (wooden arrows)",tool:"bow",  inp:"arw:1",       out:"raw:2",          wear:1},
+    {id:"huntB",   name:"Hunt (bone arrows)",  tool:"bow",  inp:"arb:1",       out:"raw:3",          wear:1},
+    {id:"huntF",   name:"Hunt (flint arrows)", tool:"bow",  inp:"arf:1",       out:"raw:4",          wear:1},
+    {id:"cook",    name:"Cook",                tool:"",     inp:"raw:1, fw:16",out:"food:16, bone:1",wear:0},
+    {id:"chop",    name:"Chopping block",      tool:"axe",  inp:"wood:4",      out:"fw:32",          wear:1}
   ],
   sites:[
-    {id:"glade",   name:"South glade",     acts:"berries",              dist:0.5,  stock:60,  cap:60,  regrow:10},
-    {id:"heath",   name:"Heather slopes",  acts:"berries",              dist:1.2,  stock:90,  cap:90,  regrow:12},
-    {id:"copse",   name:"The copse",       acts:"fwscav",               dist:0.25, stock:50,  cap:50,  regrow:10},
-    {id:"hollow",  name:"Deadwood hollow", acts:"fwscav",               dist:0.8,  stock:90,  cap:90,  regrow:14},
-    {id:"forest",  name:"Forest edge",     acts:"woodcut",              dist:0.5,  stock:60,  cap:60,  regrow:6},
-    {id:"deepwood",name:"Deep forest",     acts:"woodcut",              dist:1.3,  stock:250, cap:250, regrow:12},
-    {id:"outcrop", name:"Stone outcrop",   acts:"stoneB, stoneP",       dist:1,    stock:40,  cap:40,  regrow:0},
-    {id:"ridge",   name:"High ridge",      acts:"stoneB, stoneP",       dist:2,    stock:160, cap:160, regrow:0},
-    {id:"grounds", name:"Hunting grounds", acts:"huntW, huntB, huntF",  dist:1.5,  stock:90,  cap:90,  regrow:8},
-    {id:"range",   name:"Far range",       acts:"huntW, huntB, huntF",  dist:2.2,  stock:300, cap:300, regrow:16}
+    {id:"glade",   name:"South glade",     acts:"berries",              dist:0.5,  stock:240,  cap:240,  regrow:24},
+    {id:"heath",   name:"Heather slopes",  acts:"berries",              dist:1.2,  stock:360,  cap:360,  regrow:24},
+    {id:"copse",   name:"The copse",       acts:"fwscav",               dist:0.25, stock:200,  cap:200,  regrow:24},
+    {id:"hollow",  name:"Deadwood hollow", acts:"fwscav",               dist:0.8,  stock:360,  cap:360,  regrow:24},
+    {id:"forest",  name:"Forest edge",     acts:"woodcut",              dist:0.5,  stock:60,   cap:60,   regrow:6},
+    {id:"deepwood",name:"Deep forest",     acts:"woodcut",              dist:1.3,  stock:250,  cap:250,  regrow:6},
+    {id:"outcrop", name:"Stone outcrop",   acts:"stoneB, stoneP",       dist:1,    stock:160,  cap:160,  regrow:0},
+    {id:"ridge",   name:"High ridge",      acts:"stoneB, stoneP",       dist:2,    stock:640,  cap:640,  regrow:0},
+    {id:"grounds", name:"Hunting grounds", acts:"huntW, huntB, huntF",  dist:1.5,  stock:90,   cap:90,   regrow:12},
+    {id:"range",   name:"Far range",       acts:"huntW, huntB, huntF",  dist:2.2,  stock:300,  cap:300,  regrow:12}
   ],
   crafts:[
-    {id:"cAxe",  name:"Stone axe",        time:1,   cost:"fw:1, stone:1",            gives:"tool:axe:1"},
-    {id:"cBow",  name:"Bow",              time:2,   cost:"fw:5",                     gives:"tool:bow:1"},
-    {id:"cArW",  name:"Wooden arrows ×5", time:1,   cost:"fw:5",                     gives:"res:arw:5"},
-    {id:"cArB",  name:"Bone arrows ×5",   time:1,   cost:"fw:5, bone:2",             gives:"res:arb:5"},
-    {id:"cArF",  name:"Flint arrows ×5",  time:1.5, cost:"fw:5, stone:3",            gives:"res:arf:5"},
-    {id:"cPick", name:"Bone pick",        time:1,   cost:"wood:1, bone:2",           gives:"tool:pick:1"},
-    {id:"cHut",  name:"Hut",              time:12,  cost:"wood:10, stone:4, bone:2", gives:"hut"}
+    {id:"cAxe",  name:"Stone axe",        time:1,   cost:"fw:4, stone:4",             gives:"tool:axe:1"},
+    {id:"cBow",  name:"Bow",              time:2,   cost:"fw:20",                     gives:"tool:bow:1"},
+    {id:"cArW",  name:"Wooden arrows ×5", time:1,   cost:"fw:20",                     gives:"res:arw:5"},
+    {id:"cArB",  name:"Bone arrows ×5",   time:1,   cost:"fw:20, bone:8",             gives:"res:arb:5"},
+    {id:"cArF",  name:"Flint arrows ×5",  time:1.5, cost:"fw:20, stone:12",           gives:"res:arf:5"},
+    {id:"cPick", name:"Bone pick",        time:1,   cost:"wood:1, bone:8",            gives:"tool:pick:1"},
+    {id:"cHut",  name:"Hut",              time:12,  cost:"wood:10, stone:16, bone:8", gives:"hut"}
   ],
   crews:[{id:"crew1", name:"First crew", size:1}],
   settings:{
-    eatDayPerHr:0.25, burnNightPerHr:0.25, hutDelayH:24,
+    eatDayPerHr:1, burnNightPerHr:1, hutDelayH:24,
     hungerPenalty:0.5, penaltyMode:0, startWorkers:1,
-    walkSpeed:1, carryCap:3
+    walkSpeed:1, carryCap:12
   }
 };
 const SETTING_LABELS={eatDayPerHr:"food eaten /worker-hr (day)", burnNightPerHr:"firewood burnt /worker-hr (night)",
@@ -245,7 +245,8 @@ let S, A;
 /* ============ helpers ============ */
 const parseMap=s=>{const m={};(s||"").split(",").forEach(p=>{const[k,v]=p.split(":").map(x=>x.trim());if(k&&!isNaN(+v))m[k]=+v;});return m;};
 const parseIds=s=>(s||"").split(",").map(x=>x.trim()).filter(Boolean);
-const fmtQty=v=>(+v).toFixed(1).replace(/\.0$/,"");
+const fmtQty=v=>String(Math.round(+v));
+const fmtHrs=v=>(+v).toFixed(1).replace(/\.0$/,"");
 const resName=id=>(D.resources.find(r=>r.id===id)||{name:id}).name;
 const toolName=id=>(D.tools.find(t=>t.id===id)||{name:id}).name;
 const actById=id=>D.activities.find(a=>a.id===id);
@@ -286,9 +287,9 @@ function continuousWork(n,a,hFrac){
   let f=use*S.eff*hFrac;
   for(const[r,q]of Object.entries(inp)){if(q>0)f=Math.min(f,(S.res[r]||0)/q);}
   if(f<=1e-9)return 0;
-  for(const[r,q]of Object.entries(inp))S.res[r]=(S.res[r]||0)-q*f;
+  for(const[r,q]of Object.entries(inp))S.res[r]=Math.max(0,(S.res[r]||0)-Math.round(q*f));
   for(const[r,q]of Object.entries(out)){
-    const before=S.res[r]||0; S.res[r]=before+q*f;
+    const before=S.res[r]||0; S.res[r]=before+Math.round(q*f);
     if(r==="bone"&&before<0.001&&S.res[r]>0.001) milestone("bone","the first bones from the cookfire");
   }
   if(a.tool&&+a.wear>0)S.wear[a.tool]=(S.wear[a.tool]||0)+use*(+a.wear)*hFrac;
@@ -364,11 +365,11 @@ function crewHour(c,hourOfDay){
             if(a){
               const out=parseMap(a.out),wh=cs.fillDone*cs.usable*(S.eff||1);
               const cargo=[];
-              for(const[r,q]of Object.entries(out)){S.res[r]=(S.res[r]||0)+q*wh;cargo.push(fmtQty(q*wh)+" "+resName(r));}
+              for(const[r,q]of Object.entries(out)){const d=Math.round(q*wh);S.res[r]=(S.res[r]||0)+d;if(d>0)cargo.push(d+" "+resName(r));}
               if(wh>0.01){
-                log("“"+c.name+"” returns from "+(site?site.name:"?")+" with "+cargo.join(", ")+
+                log("“"+c.name+"” returns from "+(site?site.name:"?")+" with "+(cargo.length?cargo.join(", "):"nothing (too little to round to a whole unit)")+
                   (cs.partial==="dusk"?" (left early for dusk)":cs.partial==="inputs"?" (ran out of inputs)":cs.partial==="site"?" (the site ran bare)":""));
-                if(/^hunt/.test(cs.actId)) milestone("hunt","first successful hunt");
+                if(cargo.length&&/^hunt/.test(cs.actId)) milestone("hunt","first successful hunt");
               }
             }
             cs.mode=null;cs.phase="idle";cs.actId=null;cs.siteId=null;
@@ -475,12 +476,12 @@ function simHour(){
 
   if(day){
     for(const c of D.crews)crewHour(c,h);
-    const need=S.workers*(+set.eatDayPerHr||0);
+    const need=Math.round(S.workers*(+set.eatDayPerHr||0));
     S.dayFoodNeed+=need;
     if((S.res.food||0)>=need)S.res.food-=need;
     else{S.dayFoodShort+=need-(S.res.food||0);S.res.food=0;}
   } else {
-    const need=S.workers*(+set.burnNightPerHr||0);
+    const need=Math.round(S.workers*(+set.burnNightPerHr||0));
     S.nightFwNeed+=need;
     if((S.res.fw||0)>=need)S.res.fw-=need;
     else{const short=need-(S.res.fw||0);if(S.nightFwShort===0)log("The fire gutters in the night.","bad");S.nightFwShort+=short;S.res.fw=0;}
@@ -498,8 +499,8 @@ function simHour(){
     const a=S.hist[Math.max(0,S.hist.length-24)],b=S.hist[S.hist.length-1];
     const parts=[];
     D.resources.forEach(r=>{
-      const d=(b[r.id]||0)-(a[r.id]||0);
-      if(Math.abs(d)>0.05||["food","fw"].includes(r.id))parts.push(r.name+" "+fmtQty(b[r.id]||0)+" ("+(d>=0?"+":"")+d.toFixed(1)+")");
+      const d=Math.round((b[r.id]||0)-(a[r.id]||0));
+      if(d!==0||["food","fw"].includes(r.id))parts.push(r.name+" "+fmtQty(b[r.id]||0)+" ("+(d>=0?"+":"")+d+")");
     });
     const wh=S.dayWh,tot=wh.upkeep+wh.progress+wh.idle;
     const share=tot>0?Math.round(100*wh.upkeep/tot)+"% upkeep / "+Math.round(100*wh.progress/tot)+"% progress / "+Math.round(100*wh.idle/tot)+"% idle":"—";
@@ -512,8 +513,8 @@ function deliver(c){
   if(g==="hut"){S.arrivals.push(S.hour+(+D.settings.hutDelayH||24));log("A hut is raised — a newcomer arrives in "+D.settings.hutDelayH+" h.","good");milestone("hut","the first hut stands");}
   else{
     const[kind,id,qty]=g.split(":").map(x=>x.trim());
-    if(kind==="tool"){S.tools[id]=(S.tools[id]||0)+(+qty||1);milestone("tool_"+id,"first "+toolName(id));}
-    else if(kind==="res")S.res[id]=(S.res[id]||0)+(+qty||1);
+    if(kind==="tool"){S.tools[id]=(S.tools[id]||0)+Math.round(+qty||1);milestone("tool_"+id,"first "+toolName(id));}
+    else if(kind==="res")S.res[id]=(S.res[id]||0)+Math.round(+qty||1);
     log(c.name+" finished.","good");
   }
 }
@@ -524,7 +525,7 @@ function canAfford(cost){return Object.entries(cost).every(([r,q])=>(S.res[r]||0
 function order(craftId){
   const c=D.crafts.find(c=>c.id===craftId),cost=parseMap(c.cost);
   if(!canAfford(cost))return;
-  Object.entries(cost).forEach(([r,q])=>S.res[r]-=q);
+  Object.entries(cost).forEach(([r,q])=>S.res[r]=(S.res[r]||0)-Math.round(q));
   S.queue.push({craftId:c.id,name:c.name,remaining:+c.time||0});
   log("Ordered: "+c.name+" ("+c.time+" worker-h). Cost paid.");
   render();doSave();
@@ -533,7 +534,7 @@ function cancelOrder(i){
   const job=S.queue[i];if(!job)return;
   const c=D.crafts.find(c=>c.id===job.craftId);
   if(c&&job.remaining>=+c.time-1e-9){
-    Object.entries(parseMap(c.cost)).forEach(([r,q])=>S.res[r]=(S.res[r]||0)+q);
+    Object.entries(parseMap(c.cost)).forEach(([r,q])=>S.res[r]=(S.res[r]||0)+Math.round(q));
     log("Cancelled "+job.name+" — materials refunded.");
   }else log("Cancelled "+job.name+" — materials lost (work begun).","bad");
   S.queue.splice(i,1);render();doSave();
@@ -582,7 +583,7 @@ async function doSave(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     try{
-      await window.storage.set("holding-sim-v04",JSON.stringify({data:D,state:S,assign:A}));
+      await window.storage.set("holding-sim-v041",JSON.stringify({data:D,state:S,assign:A}));
       saveNote.textContent="autosaved · D"+(Math.floor(S.hour/24)+1);
     }catch(e){saveNote.textContent="autosave failed — use Export";}
   },300);
@@ -590,7 +591,7 @@ async function doSave(){
 async function tryLoad(){
   if(!hasStorage)return false;
   try{
-    const r=await window.storage.get("holding-sim-v04");
+    const r=await window.storage.get("holding-sim-v041");
     if(!r)return false;
     const p=JSON.parse(r.value);
     if(!p||!p.data||!p.state)return false;
@@ -599,7 +600,7 @@ async function tryLoad(){
   }catch(e){return false;}
 }
 async function wipeSave(){
-  if(hasStorage){try{await window.storage.delete("holding-sim-v04");}catch(e){}}
+  if(hasStorage){try{await window.storage.delete("holding-sim-v041");}catch(e){}}
   saveNote.textContent="saved copy deleted";
 }
 
@@ -841,14 +842,14 @@ function render(){
   const cg=document.getElementById("crafts");cg.innerHTML="";
   D.crafts.forEach(c=>{
     const cost=parseMap(c.cost);
-    const costTxt=Object.entries(cost).map(([r,q])=>q+" "+resName(r)).join(" + ")||"free";
+    const costTxt=Object.entries(cost).map(([r,q])=>Math.round(q)+" "+resName(r)).join(" + ")||"free";
     const d=document.createElement("div");d.className="craft";
     d.innerHTML="<span>"+c.name+"</span><span class='cost'>"+costTxt+" · "+c.time+" worker-h</span>";
     const b=document.createElement("button");b.textContent="Order";b.disabled=!canAfford(cost);b.onclick=()=>order(c.id);
     d.appendChild(b);cg.appendChild(d);
   });
   const q=document.getElementById("cqueue");
-  q.innerHTML=S.queue.length?("Queue: "+S.queue.map((j,i)=>"<b>"+j.name+"</b> ("+fmtQty(j.remaining)+"h) <button class='sm' onclick='cancelOrder("+i+")'>✕</button>").join(" → ")):"Queue empty.";
+  q.innerHTML=S.queue.length?("Queue: "+S.queue.map((j,i)=>"<b>"+j.name+"</b> ("+fmtHrs(j.remaining)+"h) <button class='sm' onclick='cancelOrder("+i+")'>✕</button>").join(" → ")):"Queue empty.";
   document.getElementById("legend").innerHTML=D.resources.map((r,i)=>"<span><i style='background:"+PALETTE[i%PALETTE.length]+"'></i>"+r.name+"</span>").join("");
   drawChart();deadlockCheck();
 }
