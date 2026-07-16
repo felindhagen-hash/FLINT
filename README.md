@@ -7,7 +7,7 @@ the balance simulator used to design its economy: a fast-forwardable model of
 workers, crews, task queues, travel, resource sites, tool wear, and
 survival pressure, with every number editable at runtime.
 
-**Play it:** https://REPLACE-ME.github.io/REPLACE-ME/ *(GitHub Pages, works on phone)*
+**Play it:** https://felindhagen-hash.github.io/FLINT/ *(GitHub Pages, works on phone)*
 
 ## What's in here
 | File | Role |
