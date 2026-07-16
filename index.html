@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Holding — Economy Simulator v0.4.1</title>
+<title>Holding — Economy Simulator v0.4.2</title>
 <style>
   :root{
     --night:#14161B; --panel:#1E222A; --panel2:#262B35; --line:#333A47;
@@ -96,7 +96,7 @@
 </head>
 <body>
 <header>
-  <h1>The Holding <small>economy simulator v0.4.1 — sites · depletion · queues · earned idle</small></h1>
+  <h1>The Holding <small>economy simulator v0.4.2 — sites · depletion · queues · earned idle</small></h1>
   <div class="clockrow">
     <span class="daylabel" id="dayLbl"></span>
     <span id="forecast"></span>
@@ -139,7 +139,7 @@
   <section><h2>Event log <small>— deliveries, milestones (★), day ledgers</small></h2><div id="log"></div></section>
 
   <details>
-    <summary>Data tables <small>— canonical = Fredrik's 2026-07-16 export + v0.4.1 integer rescale</small></summary>
+    <summary>Data tables <small>— canonical = Fredrik's 2026-07-16 export + v0.4.2 per-site regrow fix</small></summary>
     <h2 style="margin-top:10px">Resources</h2>
     <div class="tblwrap"><table id="tRes"></table></div>
     <button class="sm" onclick="addRes()">+ resource</button>
@@ -157,7 +157,7 @@
     <button class="sm" onclick="addCraft()">+ craftable</button>
     <h2 style="margin-top:14px">Settings</h2>
     <div class="tblwrap"><table id="tSet"></table></div>
-    <div class="note"><span class="flag">v0.4.1 integer economy (2026-07-16):</span> food/firewood/stone/bone rescaled ×4 (wood/raw/arrows unchanged); all store transactions round to the nearest whole unit on commit — trip fill/walk timing stays continuous underneath. Organic site regrow set to ~50% of one worker's daily harvest, so a single crew can no longer camp a site forever — rotate between sites. cook yields 1 bone/raw · bone arrows cost 8 bone/batch · flint arrows 12 stone/batch · hunts no longer haul firewood. <span class="flag">Earned-idle acceptance test:</span> set a queue, press +7 days, touch nothing — the holding must stay undegraded. penaltyMode: 0 = 50% cliff, 1 = proportional to shortfall.</div>
+    <div class="note"><span class="flag">v0.4.2 per-site regrow (2026-07-16):</span> flat per-resource regrow flattened distance out of the 40–60% law — a flat number didn't distinguish a 3-trip-a-day near site from a 1-trip-a-day far one. Regrow is now ~50% of one worker's actual daily harvest at that site (walk speed 1, carry cap 12, dusk-truncated trips; hunting sites referenced to flint-arrow rate): glade 18, heath 12, copse 20, hollow 15, forest 6, deepwood 5, grounds 12, range 6. Minerals still never regrow. <span class="flag">v0.4.1 integer economy:</span> food/firewood/stone/bone rescaled ×4 (wood/raw/arrows unchanged); all store transactions round to the nearest whole unit on commit — trip fill/walk timing stays continuous underneath. cook yields 1 bone/raw · bone arrows cost 8 bone/batch · flint arrows 12 stone/batch · hunts no longer haul firewood. <span class="flag">Earned-idle acceptance test:</span> set a queue, press +7 days, touch nothing — the holding must stay undegraded. penaltyMode: 0 = 50% cliff, 1 = proportional to shortfall.</div>
   </details>
 
   <details>
@@ -177,7 +177,7 @@
 'use strict';
 /* ============ CANONICAL DATA v0.4 ============ */
 const DEFAULT_DATA = {
-  meta:{name:"Holding economy", version:"0.4.1", exported:null},
+  meta:{name:"Holding economy", version:"0.4.2", exported:null},
   resources:[
     {id:"food",  name:"prepared food", start:24},
     {id:"raw",   name:"raw food",      start:0},
@@ -207,16 +207,16 @@ const DEFAULT_DATA = {
     {id:"chop",    name:"Chopping block",      tool:"axe",  inp:"wood:4",      out:"fw:32",          wear:1}
   ],
   sites:[
-    {id:"glade",   name:"South glade",     acts:"berries",              dist:0.5,  stock:240,  cap:240,  regrow:24},
-    {id:"heath",   name:"Heather slopes",  acts:"berries",              dist:1.2,  stock:360,  cap:360,  regrow:24},
-    {id:"copse",   name:"The copse",       acts:"fwscav",               dist:0.25, stock:200,  cap:200,  regrow:24},
-    {id:"hollow",  name:"Deadwood hollow", acts:"fwscav",               dist:0.8,  stock:360,  cap:360,  regrow:24},
+    {id:"glade",   name:"South glade",     acts:"berries",              dist:0.5,  stock:240,  cap:240,  regrow:18},
+    {id:"heath",   name:"Heather slopes",  acts:"berries",              dist:1.2,  stock:360,  cap:360,  regrow:12},
+    {id:"copse",   name:"The copse",       acts:"fwscav",               dist:0.25, stock:200,  cap:200,  regrow:20},
+    {id:"hollow",  name:"Deadwood hollow", acts:"fwscav",               dist:0.8,  stock:360,  cap:360,  regrow:15},
     {id:"forest",  name:"Forest edge",     acts:"woodcut",              dist:0.5,  stock:60,   cap:60,   regrow:6},
-    {id:"deepwood",name:"Deep forest",     acts:"woodcut",              dist:1.3,  stock:250,  cap:250,  regrow:6},
+    {id:"deepwood",name:"Deep forest",     acts:"woodcut",              dist:1.3,  stock:250,  cap:250,  regrow:5},
     {id:"outcrop", name:"Stone outcrop",   acts:"stoneB, stoneP",       dist:1,    stock:160,  cap:160,  regrow:0},
     {id:"ridge",   name:"High ridge",      acts:"stoneB, stoneP",       dist:2,    stock:640,  cap:640,  regrow:0},
     {id:"grounds", name:"Hunting grounds", acts:"huntW, huntB, huntF",  dist:1.5,  stock:90,   cap:90,   regrow:12},
-    {id:"range",   name:"Far range",       acts:"huntW, huntB, huntF",  dist:2.2,  stock:300,  cap:300,  regrow:12}
+    {id:"range",   name:"Far range",       acts:"huntW, huntB, huntF",  dist:2.2,  stock:300,  cap:300,  regrow:6}
   ],
   crafts:[
     {id:"cAxe",  name:"Stone axe",        time:1,   cost:"fw:4, stone:4",             gives:"tool:axe:1"},
